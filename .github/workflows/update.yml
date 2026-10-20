@@ -1,0 +1,32 @@
+name: Auto Update Macro Data
+
+on:
+  schedule:
+    # 每天早上 09:30 (北京时间) 自动运行一次
+    - cron: '30 1 * * *'
+  workflow_dispatch: # 允许你在网页上随时手动点击运行
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run data fetcher
+        run: python update_data.py
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update macro data" && git push)
