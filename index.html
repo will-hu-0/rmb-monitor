@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人民币汇率与宏观变盘信号监控台</title>
+    <style>
+        :root {
+            --bg: #f4f6f9; --card: #ffffff; --primary: #1677ff;
+            --safe: #52c41a; --warn: #faad14; --danger: #ff4d4f;
+            --text: #1f2329; --subtext: #646a73;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg); color: var(--text);
+            margin: 0; padding: 16px; line-height: 1.6;
+        }
+        .container { max-width: 1080px; margin: 0 auto; }
+        header {
+            background: linear-gradient(135deg, #1d2b64 0%, #1677ff 100%);
+            color: white; padding: 22px; border-radius: 12px;
+            margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        header h1 { margin: 0 0 6px 0; font-size: 20px; }
+        header p { margin: 0; opacity: 0.88; font-size: 13px; }
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px; margin-bottom: 18px;
+        }
+        .card {
+            background: var(--card); border-radius: 12px; padding: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .card h2 {
+            font-size: 16px; margin-top: 0; padding-bottom: 10px;
+            border-bottom: 1px solid #eee; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .metric-val { font-size: 26px; font-weight: bold; color: var(--primary); margin: 8px 0; }
+        .metric-date { font-size: 12px; color: var(--subtext); }
+        .badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; color: white; font-weight: normal; }
+        .badge-safe { background: var(--safe); }
+        .badge-warn { background: var(--warn); }
+        .badge-danger { background: var(--danger); }
+        .btn-link {
+            display: inline-block; background: #f0f5ff; color: var(--primary);
+            border: 1px solid #adc6ff; padding: 6px 12px; border-radius: 6px;
+            text-decoration: none; font-size: 12px; margin-top: 8px;
+        }
+        .input-group {
+            margin: 10px 0; display: flex; align-items: center; justify-content: space-between;
+        }
+        .input-group label { font-size: 14px; color: var(--subtext); }
+        .input-group input {
+            width: 100px; padding: 6px 10px; border: 1px solid #d9d9d9;
+            border-radius: 6px; font-size: 14px; text-align: right;
+        }
+        .result-box {
+            padding: 16px; border-radius: 8px; background: #f6ffed;
+            border: 1px solid #b7eb8f; font-size: 14px;
+        }
+        .rule-text { font-size: 13px; color: var(--subtext); margin: 4px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>📊 人民币汇率与宏观“变盘信号”监控台</h1>
+        <p id="updateTime">正在加载最新云端数据...（支持每日自动抓取或手动测算）</p>
+    </header>
+
+    <!-- 实时汇率行情 -->
+    <div class="card" style="margin-bottom: 18px;">
+        <h2>⚡ 实时外汇与国债行情（TradingView 实时数据）</h2>
+        <p class="rule-text">💡 重点对比 <b>USDCNH（离岸）</b> 与 <b>USDCNY（在岸）</b>。若离岸比在岸高出 <b>0.05 (500点)</b> 以上，说明海外做空压力显著。</p>
+        <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-tickers.js" async>
+            {
+                "symbols": [
+                    { "proName": "FX_IDC:USDCNY", "title": "在岸人民币 (USDCNY)" },
+                    { "proName": "FX:USDCNH", "title": "离岸人民币 (USDCNH)" },
+                    { "proName": "TVC:DXY", "title": "美元指数 (DXY)" },
+                    { "proName": "TVC:CN10Y", "title": "中国10年期国债收益率" }
+                ],
+                "colorTheme": "light", "isTransparent": false, "showSymbolLogo": true, "locale": "zh_CN"
+            }
+            </script>
+        </div>
+    </div>
+
+    <!-- 三大月度核心指标卡片 -->
+    <div class="grid">
+        <div class="card">
+            <h2>1. 海关贸易顺差 <span id="badge-trade" class="badge badge-safe">月度核心</span></h2>
+            <div class="metric-val" id="val-trade">-- 亿美元</div>
+            <div class="metric-date" id="date-trade">数据周期：等待加载</div>
+            <p class="rule-text">✅ 安全区：> 500 亿美元/月</p>
+            <p class="rule-text">🚨 危险线：跌破 <b>200 亿美元</b> 或出现负数</p>
+            <a class="btn-link" href="https://data.eastmoney.com/cjsj/hgjck.html" target="_blank">查看东方财富历史图表 ↗</a>
+        </div>
+
+        <div class="card">
+            <h2>2. 国内物价 (CPI同比) <span id="badge-cpi" class="badge badge-safe">通胀监控</span></h2>
+            <div class="metric-val" id="val-cpi">-- %</div>
+            <div class="metric-date" id="date-cpi">数据周期：等待加载</div>
+            <p class="rule-text">✅ 安全区：-0.5% ~ +2.5% 之间</p>
+            <p class="rule-text">🚨 危险线：冲上 <b>3.5% ~ 5.0%</b> 以上（滞胀）</p>
+            <a class="btn-link" href="https://data.eastmoney.com/cjsj/cpi.html" target="_blank">查看东方财富历史图表 ↗</a>
+        </div>
+
+        <div class="card">
+            <h2>3. 国家外汇储备 <span id="badge-fx" class="badge badge-safe">护盘家底</span></h2>
+            <div class="metric-val" id="val-fx">-- 万亿美元</div>
+            <div class="metric-date" id="date-fx">数据周期：等待加载</div>
+            <p class="rule-text">✅ 安全区：> 3.1 万亿美元</p>
+            <p class="rule-text">🚨 危险线：跌破 <b>3.0 万亿美元</b> 且快速缩水</p>
+            <a class="btn-link" href="https://data.eastmoney.com/cjsj/hjwh.html" target="_blank">查看东方财富历史图表 ↗</a>
+        </div>
+    </div>
+
+    <!-- 综合诊断与模拟器 -->
+    <div class="card">
+        <h2>🧮 综合变盘信号诊断（自动填入最新抓取数据，也可手动修改测试）</h2>
+        <div class="grid" style="margin-bottom: 0;">
+            <div>
+                <div class="input-group">
+                    <label>当月贸易顺差（亿美元）：</label>
+                    <input type="number" id="trade" value="850" step="10" oninput="checkRisk()">
+                </div>
+                <div class="input-group">
+                    <label>当月 CPI 同比（%）：</label>
+                    <input type="number" id="cpi" value="0.5" step="0.1" oninput="checkRisk()">
+                </div>
+                <div class="input-group">
+                    <label>最新外汇储备（万亿美元）：</label>
+                    <input type="number" id="fx" value="3.25" step="0.05" oninput="checkRisk()">
+                </div>
+                <div class="input-group">
+                    <label>离岸比在岸贵多少（如 0.01）：</label>
+                    <input type="number" id="spread" value="0.01" step="0.01" oninput="checkRisk()">
+                </div>
+            </div>
+            <div>
+                <div id="resultBox" class="result-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function checkRisk() {
+    const trade = parseFloat(document.getElementById('trade').value) || 0;
+    const cpi = parseFloat(document.getElementById('cpi').value) || 0;
+    const fx = parseFloat(document.getElementById('fx').value) || 0;
+    const spread = parseFloat(document.getElementById('spread').value) || 0;
+
+    let warnings = [];
+    if (trade < 200) warnings.push("⚠️ 贸易顺差严重萎缩（低于200亿美元），造血能力下降！");
+    if (cpi >= 3.5) warnings.push("⚠️ CPI 突破 3.5%，警惕货币超发引发的印钞型通胀！");
+    if (fx < 3.0) warnings.push("⚠️ 外汇储备跌破 3 万亿美元大关，护盘家底消耗加快！");
+    if (spread >= 0.05) warnings.push("⚠️ 离岸与在岸点差超过 500 点（0.05），海外做空压力显著！");
+
+    const box = document.getElementById('resultBox');
+    if (warnings.length === 0) {
+        box.style.background = "#f6ffed"; box.style.borderColor = "#b7eb8f";
+        box.innerHTML = `<strong>🟢 当前综合评估：安全区（人民币底层支撑稳固）</strong>
+            <p style="margin: 8px 0 0 0;">四大指标均未触发危险阈值。建议：国内消费资金继续持有人民币稳健理财，无需冒汇率风险盲目换美元。</p>`;
+    } else if (warnings.length === 1) {
+        box.style.background = "#fffbe6"; box.style.borderColor = "#ffe58f";
+        box.innerHTML = `<strong>🟡 当前综合评估：黄灯关注（出现 1 项预警）</strong>
+            <p style="margin: 8px 0 0 0;">${warnings.join('<br>')}<br>建议：保持观察，暂无需恐慌，可适当关注黄金或低风险多元配置。</p>`;
+    } else {
+        box.style.background = "#fff2f0"; box.style.borderColor = "#ffccc7";
+        box.innerHTML = `<strong>🔴 当前综合评估：红灯警报（触发 ${warnings.length} 项变盘信号！）</strong>
+            <p style="margin: 8px 0 0 0;">${warnings.join('<br>')}<br><b>操作建议：</b>基本面支撑正在发生趋势性逆转，建议分批将部分闲置资金配置为美元、黄金或海外资产避险！</p>`;
+    }
+}
+
+// 自动读取同目录下的 data.json（由 GitHub Actions 自动生成）
+fetch('./data.json?t=' + new Date().getTime())
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('updateTime').innerText = '最后自动同步时间：' + data.updated_at;
+        
+        document.getElementById('val-trade').innerText = data.trade_balance + ' 亿美元';
+        document.getElementById('date-trade').innerText = '数据月份：' + data.trade_date;
+        document.getElementById('trade').value = data.trade_balance;
+
+        document.getElementById('val-cpi').innerText = data.cpi_yoy + ' %';
+        document.getElementById('date-cpi').innerText = '数据月份：' + data.cpi_date;
+        document.getElementById('cpi').value = data.cpi_yoy;
+
+        document.getElementById('val-fx').innerText = data.fx_reserve + ' 万亿美元';
+        document.getElementById('date-fx').innerText = '数据月份：' + data.fx_date;
+        document.getElementById('fx').value = data.fx_reserve;
+
+        checkRisk();
+    })
+    .catch(() => {
+        document.getElementById('updateTime').innerText = '当前为手动/默认模式（配置 GitHub Actions 后可每日自动同步官方数据）';
+        checkRisk();
+    });
+</script>
+</body>
+</html>
