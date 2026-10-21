@@ -25,41 +25,50 @@ def main():
         "fx_date": "最新一期"
     }
 
-    # 1. 获取海关进出口贸易差额 (RPT_ECONOMY_CUSTOMS)
+    # 1. 获取海关进出口贸易顺差 (当月出口 EXIT_BASE - 当月进口 IMPORT_BASE)
     try:
         rows = fetch_eastmoney("RPT_ECONOMY_CUSTOMS")
-        if rows:
-            latest = rows[0]
-            # 东方财富贸易差额单位通常为亿美元或亿元，EXIT_BASE 为当月贸易差额(亿美元)
-            val = latest.get("EXIT_BASE")
-            if val is not None:
-                data["trade_balance"] = round(float(val), 1)
-                data["trade_date"] = str(latest.get("REPORT_DATE", ""))[:7]
+        for row in rows:
+            exp_val = row.get("EXIT_BASE")
+            imp_val = row.get("IMPORT_BASE")
+            if exp_val is not None and imp_val is not None:
+                raw_balance = float(exp_val) - float(imp_val)
+                # 海关原始单位为“千美元”，若绝对值大于 100万，则除以 100000 换算为“亿美元”
+                if abs(raw_balance) > 1000000:
+                    balance_billion_usd = raw_balance / 100000.0
+                else:
+                    balance_billion_usd = raw_balance
+                data["trade_balance"] = round(balance_billion_usd, 1)
+                data["trade_date"] = str(row.get("REPORT_DATE", ""))[:7]
+                break
     except Exception as e:
         print("Trade fetch error:", e)
 
     # 2. 获取中国 CPI 同比 (RPT_ECONOMY_CPI)
     try:
         rows = fetch_eastmoney("RPT_ECONOMY_CPI")
-        if rows:
-            latest = rows[0]
-            val = latest.get("NATIONAL_SAME")
+        for row in rows:
+            val = row.get("NATIONAL_SAME")
             if val is not None:
                 data["cpi_yoy"] = round(float(val), 2)
-                data["cpi_date"] = str(latest.get("REPORT_DATE", ""))[:7]
+                data["cpi_date"] = str(row.get("REPORT_DATE", ""))[:7]
+                break
     except Exception as e:
         print("CPI fetch error:", e)
 
     # 3. 获取国家外汇储备 (RPT_ECONOMY_GOLD_CURRENCY)
     try:
         rows = fetch_eastmoney("RPT_ECONOMY_GOLD_CURRENCY")
-        if rows:
-            latest = rows[0]
-            # FOREX 单位通常为亿美元，除以 10000 换算为万亿美元
-            val = latest.get("FOREX")
+        for row in rows:
+            val = row.get("FOREX")
             if val is not None:
-                data["fx_reserve"] = round(float(val) / 10000.0, 3)
-                data["fx_date"] = str(latest.get("REPORT_DATE", ""))[:7]
+                fx_val = float(val)
+                # 东方财富外储单位为“亿美元”，除以 10000 换算为“万亿美元”
+                if fx_val > 1000:
+                    fx_val = fx_val / 10000.0
+                data["fx_reserve"] = round(fx_val, 3)
+                data["fx_date"] = str(row.get("REPORT_DATE", ""))[:7]
+                break
     except Exception as e:
         print("FX fetch error:", e)
 
