@@ -678,11 +678,11 @@ function analyzeAll() {
     }
 }
 
-// 自动拉取同目录下的 data.json
+// 自动拉取同目录下的 data.json 并渲染 AI 实时生成的分析报告
 fetch('./data.json?t=' + new Date().getTime())
     .then(res => res.json())
     .then(data => {
-        document.getElementById('updateTime').innerText = '最后自动同步官方数据：' + data.updated_at;
+        document.getElementById('updateTime').innerText = '最后同步：' + data.updated_at;
         document.getElementById('date-trade').innerText = data.trade_date;
         document.getElementById('date-cpi').innerText = data.cpi_date;
         document.getElementById('date-fx').innerText = data.fx_date;
@@ -690,10 +690,22 @@ fetch('./data.json?t=' + new Date().getTime())
         document.getElementById('trade').value = data.trade_balance;
         document.getElementById('cpi').value = data.cpi_yoy;
         document.getElementById('fx').value = data.fx_reserve;
+
+        // 先更新仪表盘分数和徽章颜色
         analyzeAll();
+
+        // 用云端 AI 针对近 6 个月趋势撰写的深度分析覆盖默认模板
+        if (data.ai_insights) {
+            document.getElementById('insight-trade').innerHTML = `<strong>🤖 AI 趋势解读：</strong>` + data.ai_insights.insight_trade;
+            document.getElementById('insight-cpi').innerHTML = `<strong>🤖 AI 趋势解读：</strong>` + data.ai_insights.insight_cpi;
+            document.getElementById('insight-fx').innerHTML = `<strong>🤖 AI 趋势解读：</strong>` + data.ai_insights.insight_fx;
+            document.getElementById('sum-macro').innerHTML = data.ai_insights.sum_macro;
+            document.getElementById('sum-trend').innerHTML = data.ai_insights.sum_trend;
+            document.getElementById('sum-action').innerHTML = data.ai_insights.sum_action;
+        }
     })
     .catch(() => {
-        document.getElementById('updateTime').innerText = '当前为本地预览模式（连接 GitHub data.json 后将自动显示最新官方日期）';
+        document.getElementById('updateTime').innerText = '当前为本地模拟模式';
         analyzeAll();
     });
 </script>
